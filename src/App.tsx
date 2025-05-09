@@ -9,7 +9,8 @@ interface Message {
   fromVoice?: boolean;
 }
 
-const BACKEND_URL = 'http://localhost:8000/api/chat';
+//const BACKEND_URL = 'http://localhost:8000/api/chat';
+const BACKEND_URL = 'https://backend-asistente.onrender.com';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'voice' | 'chat'>('voice');
