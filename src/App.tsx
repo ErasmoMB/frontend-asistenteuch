@@ -10,7 +10,7 @@ interface Message {
 }
 
 //const BACKEND_URL = 'http://localhost:8000/api/chat';
-const BACKEND_URL = 'https://backend-asistente.onrender.com';
+const BACKEND_URL = 'https://backend-asistente.onrender.com/api/chat';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'voice' | 'chat'>('voice');
@@ -68,7 +68,10 @@ const App: React.FC = () => {
     try {
       const response = await fetch(BACKEND_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ text })
       });
       const data = await response.json();
@@ -76,9 +79,11 @@ const App: React.FC = () => {
         addMessage('assistant', data.response, fromVoice);
         if (fromVoice) speak(data.response);
       } else {
+        console.error('Respuesta del backend:', data);
         addMessage('assistant', 'No se pudo obtener respuesta de la IA.', fromVoice);
       }
     } catch (error) {
+      console.error('Error completo:', error);
       addMessage('assistant', 'Error de conexión con el backend.', fromVoice);
     }
   };
