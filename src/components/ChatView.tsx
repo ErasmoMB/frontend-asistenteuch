@@ -35,7 +35,7 @@ const ChatView: React.FC<ChatViewProps> = ({ messages, onSend, onReturnToVoice, 
     <div className="chatgpt-chat-container">
       {/* Header */}
       <div className="chatgpt-header">
-        <span className="chatgpt-title">ChatGPT</span>
+        <span className="chatgpt-title">Asistente</span>
         <span className="chatgpt-trash-icon" title="Eliminar conversación" onClick={onClear}>🗑️</span>
         <span className="chatgpt-menu-icon">⋮</span>
       </div>
