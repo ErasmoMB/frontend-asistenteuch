@@ -7,7 +7,9 @@ class WebSocketService {
 
     connect() {
         try {
-            this.ws = new WebSocket('ws://localhost:8000/ws/chat');
+            this.ws = new WebSocket(
+                (process.env.REACT_APP_BACKEND_URL ? process.env.REACT_APP_BACKEND_URL.replace(/^http/, 'ws') : 'ws://localhost:8000/api').replace(/\/api$/, '/ws/chat')
+            );
             
             this.ws.onopen = () => {
                 console.log('Conexión WebSocket establecida');
@@ -69,4 +71,4 @@ class WebSocketService {
     }
 }
 
-export const websocketService = new WebSocketService(); 
+export const websocketService = new WebSocketService();

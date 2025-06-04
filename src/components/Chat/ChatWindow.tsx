@@ -146,10 +146,12 @@ const ChatWindow: React.FC = () => {
     };
   }, [transcript, isProcessing]);
 
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000/api';
+
   const sendToBackend = async (text: string) => {
     try {
       console.log('Enviando al backend:', text);
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${BACKEND_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

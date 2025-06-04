@@ -17,7 +17,7 @@ interface VoiceOption {
 }
 const voicesData: VoiceOption[] = voicesDataRaw as VoiceOption[];
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000/api/chat';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000/api';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'voice' | 'chat'>('voice');
@@ -189,7 +189,7 @@ const App: React.FC = () => {
         audioRef.current.currentTime = 0;
         setIsTalking(false);
       }
-      const response = await fetch('http://localhost:8000/api/tts', {
+      const response = await fetch(`${BACKEND_URL}/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice: selectedVoice, lang: selectedLang })
@@ -260,7 +260,7 @@ const App: React.FC = () => {
 export default App;
 
 // Palabras clave y endpoints de la API institucional
-const UCH_API_BASE = 'http://localhost:8000/api'; // Cambia a tu dominio si es necesario
+const UCH_API_BASE = BACKEND_URL;
 const UCH_KEYWORDS = [
   { key: 'carreras', endpoint: '/carreras', label: 'carreras' },
   { key: 'facultades', endpoint: '/facultades', label: 'facultades' },
