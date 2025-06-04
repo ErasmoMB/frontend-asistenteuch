@@ -121,7 +121,7 @@ const App: React.FC = () => {
         // Enviar prompt especial al backend de IA
         const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
         setConversationHistory(updatedHistory);
-        const response = await fetch(BACKEND_URL, {
+        const response = await fetch(`${BACKEND_URL}/chat`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ const App: React.FC = () => {
     const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
     setConversationHistory(updatedHistory);
     try {
-      const response = await fetch(BACKEND_URL, {
+      const response = await fetch(`${BACKEND_URL}/chat`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
