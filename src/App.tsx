@@ -110,11 +110,17 @@ const App: React.FC = () => {
   const sendToBackend = async (text: string, fromVoice = false) => {
     try {
       // Obtener toda la información institucional extendida
-      const res = await fetch(`${BACKEND_URL}/info`);
-      if (!res.ok) throw new Error('No se pudo obtener información institucional');
-      const uchData = await res.json();
+      const [resInfo, resLabs, resProd] = await Promise.all([
+        fetch(`${BACKEND_URL}/info`),
+        fetch(`${BACKEND_URL}/laboratorios`),
+        fetch(`${BACKEND_URL}/produccion_cientifica`)
+      ]);
+      if (!resInfo.ok || !resLabs.ok || !resProd.ok) throw new Error('No se pudo obtener información institucional');
+      const uchData = await resInfo.json();
+      const laboratorios = await resLabs.json();
+      const produccionCientifica = await resProd.json();
       // --- PROMPT para IA institucional ---
-      const prompt = `Eres un asistente institucional de la Universidad de Ciencias y Humanidades (UCH). Responde solo sobre la UCH, ignora otras universidades. Analiza cuidadosamente toda la siguiente información institucional (carreras, facultades, servicios, admisión, misión, visión, autoridades, etc) y responde de forma clara, breve, natural y coherente, sin saludar ni leer textos entre paréntesis. Si la pregunta es sobre carreras, servicios, facultades, admisión, biblioteca, misión, visión, autoridades o historia, responde solo en términos de la UCH y usando la información proporcionada. Si ya saludaste al inicio, no vuelvas a saludar hasta que termine la conversación.\n\nInformación institucional completa:\n${JSON.stringify(uchData)}\n\nPregunta del usuario: ${text}`;
+      const prompt = `Eres un asistente institucional de la Universidad de Ciencias y Humanidades (UCH). Responde solo sobre la UCH, ignora otras universidades. Analiza cuidadosamente toda la siguiente información institucional (carreras, facultades, servicios, admisión, misión, visión, autoridades, laboratorios, producción científica, etc) y responde de forma clara, breve, natural y coherente, sin saludar ni leer textos entre paréntesis. Si la pregunta es sobre carreras, servicios, facultades, admisión, biblioteca, misión, visión, autoridades, historia, laboratorios o producción científica, responde solo en términos de la UCH y usando la información proporcionada. Si ya saludaste al inicio, no vuelvas a saludar hasta que termine la conversación.\n\nInformación institucional completa:\n${JSON.stringify(uchData)}\n\nLaboratorios de investigación:\n${JSON.stringify(laboratorios)}\n\nProducción científica:\n${JSON.stringify(produccionCientifica)}\n\nPregunta del usuario: ${text}`;
       // Guardar en historial temporal
       const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
       setConversationHistory(updatedHistory);
