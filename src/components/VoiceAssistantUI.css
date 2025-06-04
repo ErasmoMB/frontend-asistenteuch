@@ -34,8 +34,8 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  width: 260px;
-  height: 260px;
+/*   width: 80%;
+  height: 80%; */
   border-radius: 50%;
   background: linear-gradient(180deg, #e0f2ff 0%, #b3e0ff 40%, #4ec9f0 100%);
   box-shadow: 0 0 40px 0 #4ec9f0aa;
@@ -102,4 +102,63 @@
   background: #fff;
   color: #333;
   border-color: #4ec9b0;
-} 
+}
+
+.va-modal-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.va-modal {
+  background: #fff;
+  color: #222;
+  border-radius: 16px;
+  padding: 32px 24px 24px 24px;
+  min-width: 320px;
+  box-shadow: 0 8px 32px 0 #0002;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+}
+
+.va-modal h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.2rem;
+  color: #4ec9b0;
+}
+
+.va-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.va-modal select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  font-size: 1rem;
+}
+
+.va-save-btn {
+  background: #4ec9b0;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.va-save-btn:hover {
+  background: #38b29e;
+}

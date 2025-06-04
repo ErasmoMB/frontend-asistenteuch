@@ -1,0 +1,9 @@
+[
+  { "name": "es-ES-AlvaroNeural", "label": "Álvaro (Español España, Masculino)", "lang": "es-ES" },
+  { "name": "es-ES-ElviraNeural", "label": "Elvira (Español España, Femenino)", "lang": "es-ES" },
+  { "name": "es-MX-DaliaNeural", "label": "Dalia (Español México, Femenino)", "lang": "es-MX" },
+  { "name": "en-US-GuyNeural", "label": "Guy (Inglés EEUU, Masculino)", "lang": "en-US" },
+  { "name": "en-US-JennyNeural", "label": "Jenny (Inglés EEUU, Femenino)", "lang": "en-US" },
+  { "name": "fr-FR-DeniseNeural", "label": "Denise (Francés Francia, Femenino)", "lang": "fr-FR" },
+  { "name": "pt-BR-AntonioNeural", "label": "Antonio (Portugués Brasil, Masculino)", "lang": "pt-BR" }
+]
