@@ -108,75 +108,37 @@ const App: React.FC = () => {
 
   // --- Enviar pregunta al backend ---
   const sendToBackend = async (text: string, fromVoice = false) => {
-    // --- Lógica de consulta a la API institucional ---
-    const lowerText = text.toLowerCase();
-    const match = UCH_KEYWORDS.find(({ key }) => lowerText.includes(key) || lowerText.includes('uch') || lowerText.includes('universidad de ciencias y humanidades'));
-    if (match) {
-      try {
-        const res = await fetch(`${UCH_API_BASE}${match.endpoint}`);
-        if (!res.ok) throw new Error('No se pudo obtener datos institucionales');
-        const data = await res.json();
-        // --- PROMPT para IA institucional ---
-        const prompt = `Eres un asistente institucional de la Universidad de Ciencias y Humanidades (UCH). Responde solo sobre la UCH, ignora otras universidades. Analiza la siguiente información y responde de forma clara, breve y natural, sin saludar ni leer textos entre paréntesis. Si la pregunta es sobre carreras, servicios, facultades, admisión o biblioteca, responde solo en términos de la UCH. Si ya saludaste al inicio, no vuelvas a saludar hasta que termine la conversación.\n\nInformación institucional:\n${JSON.stringify(data)}\n\nPregunta del usuario: ${text}`;
-        // Enviar prompt especial al backend de IA
-        const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
-        setConversationHistory(updatedHistory);
-        const response = await fetch(`${BACKEND_URL}/chat`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ text: prompt, history: updatedHistory })
-        });
-        const iaData = await response.json();
-        let cleanResponse = iaData.response
-          .replace(/\s*(:[\w-]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|\uD83E[\uDD00-\uDDFF])/g, '')
-          .replace(/(cara sonriente|emoji de [^.,;\s]+)/gi, '')
-          .replace(/\s{2,}/g, ' ')
-          .trim();
-        addMessage('assistant', cleanResponse, fromVoice);
-        setConversationHistory(prev => ([...prev, { role: 'assistant', content: cleanResponse }]));
-        if (fromVoice) speak(cleanResponse);
-        return;
-      } catch (err) {
-        addMessage('assistant', 'No se pudo obtener información institucional.', fromVoice);
-        setConversationHistory(prev => ([...prev, { role: 'assistant', content: 'No se pudo obtener información institucional.' }]));
-        if (fromVoice) speak('No se pudo obtener información institucional.');
-        return;
-      }
-    }
-    // --- Fin lógica API institucional ---
-    // Guardar en historial temporal
-    const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
-    setConversationHistory(updatedHistory);
     try {
+      // Obtener toda la información institucional extendida
+      const res = await fetch(`${BACKEND_URL}/info`);
+      if (!res.ok) throw new Error('No se pudo obtener información institucional');
+      const uchData = await res.json();
+      // --- PROMPT para IA institucional ---
+      const prompt = `Eres un asistente institucional de la Universidad de Ciencias y Humanidades (UCH). Responde solo sobre la UCH, ignora otras universidades. Analiza cuidadosamente toda la siguiente información institucional (carreras, facultades, servicios, admisión, misión, visión, autoridades, etc) y responde de forma clara, breve, natural y coherente, sin saludar ni leer textos entre paréntesis. Si la pregunta es sobre carreras, servicios, facultades, admisión, biblioteca, misión, visión, autoridades o historia, responde solo en términos de la UCH y usando la información proporcionada. Si ya saludaste al inicio, no vuelvas a saludar hasta que termine la conversación.\n\nInformación institucional completa:\n${JSON.stringify(uchData)}\n\nPregunta del usuario: ${text}`;
+      // Guardar en historial temporal
+      const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
+      setConversationHistory(updatedHistory);
       const response = await fetch(`${BACKEND_URL}/chat`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ text, history: updatedHistory }) // Enviar historial actualizado
+        body: JSON.stringify({ text: prompt, history: updatedHistory })
       });
-      const data = await response.json();
-      if (data && data.response) {
-        // Filtrar respuesta para eliminar descripciones de emojis y humanizar
-        let cleanResponse = data.response
-          .replace(/\s*(:[\w-]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|\uD83E[\uDD00-\uDDFF])/g, '') // elimina emojis
-          .replace(/(cara sonriente|emoji de [^.,;\s]+)/gi, '') // elimina descripciones
-          .replace(/\s{2,}/g, ' ')
-          .trim();
-        addMessage('assistant', cleanResponse, fromVoice);
-        setConversationHistory(prev => ([...prev, { role: 'assistant', content: cleanResponse }]));
-        if (fromVoice) speak(cleanResponse);
-      } else {
-        console.error('Respuesta del backend:', data);
-        addMessage('assistant', 'No se pudo obtener respuesta de la IA.', fromVoice);
-      }
-    } catch (error) {
-      console.error('Error completo:', error);
-      addMessage('assistant', 'Error de conexión con el backend.', fromVoice);
+      const iaData = await response.json();
+      let cleanResponse = iaData.response
+        .replace(/\s*(:[\w-]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|\uD83E[\uDD00-\uDDFF])/g, '')
+        .replace(/(cara sonriente|emoji de [^.,;\s]+)/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      addMessage('assistant', cleanResponse, fromVoice);
+      setConversationHistory(prev => ([...prev, { role: 'assistant', content: cleanResponse }]));
+      if (fromVoice) speak(cleanResponse);
+    } catch (err) {
+      addMessage('assistant', 'No se pudo obtener información institucional.', fromVoice);
+      setConversationHistory(prev => ([...prev, { role: 'assistant', content: 'No se pudo obtener información institucional.' }]));
+      if (fromVoice) speak('No se pudo obtener información institucional.');
     }
   };
 
@@ -258,16 +220,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-// Palabras clave y endpoints de la API institucional
-const UCH_API_BASE = BACKEND_URL;
-const UCH_KEYWORDS = [
-  { key: 'carreras', endpoint: '/carreras', label: 'carreras' },
-  { key: 'facultades', endpoint: '/facultades', label: 'facultades' },
-  { key: 'servicios', endpoint: '/servicios', label: 'servicios' },
-  { key: 'admisión', endpoint: '/admision', label: 'admisión' },
-  { key: 'admision', endpoint: '/admision', label: 'admisión' },
-  { key: 'modalidad', endpoint: '/admision', label: 'modalidades' },
-  { key: 'modalidades', endpoint: '/admision', label: 'modalidades' },
-  { key: 'biblioteca', endpoint: '/servicios', label: 'biblioteca' },
-];
