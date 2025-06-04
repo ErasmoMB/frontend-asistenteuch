@@ -17,8 +17,7 @@ interface VoiceOption {
 }
 const voicesData: VoiceOption[] = voicesDataRaw as VoiceOption[];
 
-//const BACKEND_URL = 'http://localhost:8000/api/chat';
-const BACKEND_URL = 'https://backend-asistente.onrender.com/api/chat';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000/api/chat';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'voice' | 'chat'>('voice');
