@@ -11,6 +11,7 @@ const ChatWindow: React.FC = () => {
   const [logs, setLogs] = useState<LogMessage[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -38,6 +39,7 @@ const ChatWindow: React.FC = () => {
   }, [logs]);
 
   const speak = (text: string) => {
+    setIsSpeaking(true);
     console.log('Intentando leer texto:', text);
     
     // Asegurarnos de que la API de síntesis de voz está disponible
@@ -58,7 +60,10 @@ const ChatWindow: React.FC = () => {
 
     // Agregar eventos para debugging
     utterance.onstart = () => console.log('Comenzando a hablar:', text);
-    utterance.onend = () => console.log('Terminó de hablar:', text);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      console.log('Terminó de hablar:', text);
+    };
     utterance.onerror = (event) => console.error('Error en síntesis de voz:', event);
 
     // Intentar leer el texto
@@ -149,6 +154,8 @@ const ChatWindow: React.FC = () => {
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000/api';
 
   const sendToBackend = async (text: string) => {
+    if (isProcessing) return; // Bloquea preguntas simultáneas
+    setIsProcessing(true);
     try {
       console.log('Enviando al backend:', text);
       const response = await fetch(`${BACKEND_URL}/chat`, {
@@ -172,8 +179,14 @@ const ChatWindow: React.FC = () => {
         throw new Error('La respuesta del backend no tiene el formato esperado');
       }
 
-      addLog('assistant', data.response);
-      speak(data.response);
+      let cleanResponse = data.response
+        .replace(/\*/g, '') // Elimina asteriscos
+        .replace(/https?:\/\S+/g, '') // Elimina links http/https
+        .replace(/http/gi, '') // Elimina cualquier mención de http
+        .replace(/\s{2,}/g, ' ') // Espacios dobles
+        .trim();
+      addLog('assistant', cleanResponse);
+      speak(cleanResponse);
     } catch (error) {
       console.error('Error completo:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -199,6 +212,13 @@ const ChatWindow: React.FC = () => {
       padding: '20px',
       overflow: 'auto'
     }}>
+      {/* Animación de carga solo si está procesando y no está hablando */}
+      {isProcessing && !isSpeaking && (
+        <div style={{position:'fixed',top:80,left:80,zIndex:2000,display:'flex',alignItems:'center',gap:8}}>
+          <span className="loader" style={{width:32,height:32,border:'4px solid #4ec9b0',borderTop:'4px solid transparent',borderRadius:'50%',animation:'spin 1s linear infinite',display:'inline-block'}}></span>
+          <span style={{color:'#4ec9b0',fontWeight:'bold'}}>Cargando...</span>
+        </div>
+      )}
       <button 
         onClick={testVoice}
         style={{
@@ -240,3 +260,7 @@ const ChatWindow: React.FC = () => {
 };
 
 export default ChatWindow;
+
+/* CSS para animación */
+// Agrega esto en tu CSS global o en el archivo correspondiente:
+// @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }

@@ -10,12 +10,11 @@ function AvatarModel({ talking }: { talking: boolean }) {
   const group = useRef<any>();
   const gltf = useGLTF('/avatar.glb');
 
-  // Animación de respiración sutil (escala vertical y posición Y)
   useFrame(() => {
     if (group.current) {
       const t = Date.now() * 0.001;
-      const scaleY = 1 + 0.005 * Math.sin(t * 0.5); // respiración más lenta
-      const y = 0.005 * Math.sin(t * 0.5 + 1.5); // movimiento vertical muy sutil
+      const scaleY = 1 + 0.005 * Math.sin(t * 0.5);
+      const y = 0.005 * Math.sin(t * 0.5 + 1.5);
       group.current.scale.set(1, scaleY, 1);
       group.current.position.y = y;
     }
@@ -30,7 +29,7 @@ function AvatarModel({ talking }: { talking: boolean }) {
               obj.morphTargetInfluences[idx] = 1;
             }
           }
-          // Animación de boca hablando
+          // Animación de boca hablando SOLO si talking es true
           const mouthKeys = ['mouthOpen', 'mouthOpen_vrm', 'MouthOpen', 'mouthA', 'mouth', 'jawOpen', 'viseme_aa'];
           for (const key of mouthKeys) {
             const idx = obj.morphTargetDictionary[key];

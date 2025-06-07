@@ -26,6 +26,8 @@ const App: React.FC = () => {
   const [selectedVoice, setSelectedVoice] = useState<string>(voicesData[0]?.name || 'es-ES-AlvaroNeural');
   const [selectedLang, setSelectedLang] = useState<string>(voicesData[0]?.lang || 'es-ES');
   const [isTalking, setIsTalking] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef(window.speechSynthesis);
   const shouldKeepListening = useRef(false);
@@ -61,6 +63,7 @@ const App: React.FC = () => {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
         setIsTalking(false);
+        setIsSpeaking(false);
       }
       setInputBuffer(text);
       if (inputTimeoutRef.current) {
@@ -70,6 +73,7 @@ const App: React.FC = () => {
         const words = text.trim().split(/\s+/);
         if (words.length > 1 || text.length > 10) {
           addMessage('user', text, true);
+          // Solo aquí se llama a sendToBackend, y solo ahí se activa el loader
           sendToBackend(text, true);
           setInputBuffer("");
         } else {
@@ -108,6 +112,9 @@ const App: React.FC = () => {
 
   // --- Enviar pregunta al backend ---
   const sendToBackend = async (text: string, fromVoice = false) => {
+    if (isProcessing) return;
+    // Solo activa el loader aquí, cuando realmente se envía la pregunta
+    setIsProcessing(true);
     try {
       // Obtener toda la información institucional extendida
       const [resInfo, resLabs, resProd] = await Promise.all([
@@ -134,17 +141,21 @@ const App: React.FC = () => {
       });
       const iaData = await response.json();
       let cleanResponse = iaData.response
-        .replace(/\s*(:[\w-]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|\uD83E[\uDD00-\uDDFF])/g, '')
-        .replace(/(cara sonriente|emoji de [^.,;\s]+)/gi, '')
+        .replace(/\*/g, '')
+        .replace(/https?:\/\S+/g, '')
+        .replace(/http/gi, '')
+        .replace(/www\.uch\.edu\.pe/gi, 'www.uch.edu.pe')
         .replace(/\s{2,}/g, ' ')
         .trim();
       addMessage('assistant', cleanResponse, fromVoice);
       setConversationHistory(prev => ([...prev, { role: 'assistant', content: cleanResponse }]));
       if (fromVoice) speak(cleanResponse);
+      else setIsProcessing(false);
     } catch (err) {
       addMessage('assistant', 'No se pudo obtener información institucional.', fromVoice);
       setConversationHistory(prev => ([...prev, { role: 'assistant', content: 'No se pudo obtener información institucional.' }]));
-      if (fromVoice) speak('No se pudo obtener información institucional.');
+      if (fromVoice) setTimeout(() => setIsProcessing(false), 1000);
+      else setIsProcessing(false);
     }
   };
 
@@ -169,13 +180,24 @@ const App: React.FC = () => {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      audio.playbackRate = 0.85; // Reproduce más lento para simular habla natural
+      audio.playbackRate = 0.85;
       setIsTalking(true);
-      audio.onended = () => setIsTalking(false);
-      audio.onerror = () => setIsTalking(false);
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setIsTalking(false);
+        setTimeout(() => setIsProcessing(false), 1000); // Espera 1 segundo antes de ocultar el loader
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        setIsTalking(false);
+        setTimeout(() => setIsProcessing(false), 1000);
+      };
       audio.play();
     } catch (error) {
+      setIsSpeaking(false);
       setIsTalking(false);
+      setTimeout(() => setIsProcessing(false), 1000);
       console.error('Error al obtener audio del backend:', error);
     }
   };
@@ -202,7 +224,28 @@ const App: React.FC = () => {
   };
 
   return view === 'voice' ? (
-    <div>
+    <div style={{position:'relative'}}>
+      {/* Overlay de carga: visible si isProcessing y no isSpeaking */}
+      {isProcessing && !isSpeaking && (
+        <div style={{
+          position:'fixed',
+          top:0,
+          left:0,
+          width:'100vw',
+          height:'100vh',
+          background:'rgba(30,30,30,0.45)',
+          zIndex:2000,
+          display:'flex',
+          alignItems:'center',
+          justifyContent:'center',
+          flexDirection:'column',
+        }}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+            <span className="loader" style={{width:48,height:48,border:'6px solid #4ec9b0',borderTop:'6px solid transparent',borderRadius:'50%',animation:'spin 1s linear infinite',display:'inline-block',marginBottom:16}}></span>
+            <span style={{color:'#4ec9b0',fontWeight:'bold',fontSize:22,background:'rgba(0,0,0,0.15)',padding:'8px 24px',borderRadius:12}}>Cargando...</span>
+          </div>
+        </div>
+      )}
       <VoiceAssistantUI
         onClose={() => setView('chat')}
         micActive={micActive}
@@ -211,7 +254,7 @@ const App: React.FC = () => {
         setSelectedVoice={setSelectedVoice}
         selectedLang={selectedLang}
         setSelectedLang={setSelectedLang}
-        talking={isTalking}
+        talking={isSpeaking} // Solo mueve la boca cuando isSpeaking es true
         inputBuffer={inputBuffer}
       />
     </div>
