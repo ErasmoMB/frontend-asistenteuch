@@ -28,6 +28,8 @@ const App: React.FC = () => {
   const [isTalking, setIsTalking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isFirstQuestion, setIsFirstQuestion] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // NUEVO: estado global de mute
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef(window.speechSynthesis);
   const shouldKeepListening = useRef(false);
@@ -113,8 +115,7 @@ const App: React.FC = () => {
   // --- Enviar pregunta al backend ---
   const sendToBackend = async (text: string, fromVoice = false) => {
     if (isProcessing) return;
-    // Solo activa el loader aquí, cuando realmente se envía la pregunta
-    setIsProcessing(true);
+    setIsProcessing(true); // Mostrar "Procesando..." en cada pregunta
     try {
       // Obtener toda la información institucional extendida
       const [resInfo, resLabs, resProd] = await Promise.all([
@@ -127,7 +128,18 @@ const App: React.FC = () => {
       const laboratorios = await resLabs.json();
       const produccionCientifica = await resProd.json();
       // --- PROMPT para IA institucional ---
-      const prompt = `Eres un asistente institucional de la Universidad de Ciencias y Humanidades (UCH). Responde solo sobre la UCH, ignora otras universidades. Analiza cuidadosamente toda la siguiente información institucional (carreras, facultades, servicios, admisión, misión, visión, autoridades, laboratorios, producción científica, etc) y responde de forma clara, breve, natural y coherente, sin saludar ni leer textos entre paréntesis. Si la pregunta es sobre carreras, servicios, facultades, admisión, biblioteca, misión, visión, autoridades, historia, laboratorios o producción científica, responde solo en términos de la UCH y usando la información proporcionada. Si ya saludaste al inicio, no vuelvas a saludar hasta que termine la conversación.\n\nInformación institucional completa:\n${JSON.stringify(uchData)}\n\nLaboratorios de investigación:\n${JSON.stringify(laboratorios)}\n\nProducción científica:\n${JSON.stringify(produccionCientifica)}\n\nPregunta del usuario: ${text}`;
+const prompt = `Eres un asistente virtual institucional de la Universidad de Ciencias y Humanidades (UCH). Responde siempre de manera cálida, cercana y natural, como lo haría una persona real, usando frases empáticas y amables. Si la pregunta es sobre la UCH, responde usando la información institucional proporcionada y sé específico sobre la UCH. Si la pregunta es académica, sobre carreras universitarias, servicios, vida universitaria, procesos de admisión, historia, facultades, laboratorios, producción científica, etc., puedes usar tu conocimiento general para dar una respuesta completa, clara, útil y amigable, siempre en el contexto de una universidad. Si la pregunta menciona otra universidad, responde que solo puedes dar información específica sobre la UCH. No saludes ni repitas saludos durante la conversación. No incluyas textos entre paréntesis en tus respuestas. Si el usuario pregunta si lo escuchas, responde de forma natural y humana, por ejemplo: '¡Sí, te escucho perfectamente! ¿En qué puedo ayudarte?'.
+
+Información institucional completa:
+${JSON.stringify(uchData)}
+
+Laboratorios de investigación:
+${JSON.stringify(laboratorios)}
+
+Producción científica:
+${JSON.stringify(produccionCientifica)}
+
+Pregunta del usuario: ${text}`;
       // Guardar en historial temporal
       const updatedHistory = [...conversationHistory, { role: 'user', content: text }];
       setConversationHistory(updatedHistory);
@@ -150,12 +162,13 @@ const App: React.FC = () => {
       addMessage('assistant', cleanResponse, fromVoice);
       setConversationHistory(prev => ([...prev, { role: 'assistant', content: cleanResponse }]));
       if (fromVoice) speak(cleanResponse);
-      else setIsProcessing(false);
+      setIsProcessing(false); // Ocultar "Procesando..." al recibir respuesta
+      if (isFirstQuestion) setIsFirstQuestion(false);
     } catch (err) {
       addMessage('assistant', 'No se pudo obtener información institucional.', fromVoice);
       setConversationHistory(prev => ([...prev, { role: 'assistant', content: 'No se pudo obtener información institucional.' }]));
-      if (fromVoice) setTimeout(() => setIsProcessing(false), 1000);
-      else setIsProcessing(false);
+      setIsProcessing(false); // Ocultar también en error
+      if (isFirstQuestion) setIsFirstQuestion(false);
     }
   };
 
@@ -181,6 +194,7 @@ const App: React.FC = () => {
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
       audio.playbackRate = 0.85;
+      audio.muted = isMuted; // Asegura que el audio se mutee si está activado el mute
       setIsTalking(true);
       audio.onplay = () => setIsSpeaking(true);
       audio.onended = () => {
@@ -201,6 +215,13 @@ const App: React.FC = () => {
       console.error('Error al obtener audio del backend:', error);
     }
   };
+
+  // --- Mute global para el asistente (solo voz del asistente) ---
+  React.useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+  }, [isMuted, isTalking]);
 
   // --- Limpiar historial ---
   const handleClear = () => setMessages([]);
@@ -223,48 +244,64 @@ const App: React.FC = () => {
     sendToBackend(text, false);
   };
 
-  return view === 'voice' ? (
+  return (
     <div style={{position:'relative'}}>
-      {/* Overlay de carga: visible si isProcessing y no isSpeaking */}
-      {isProcessing && !isSpeaking && (
+      {isProcessing && (
         <div style={{
-          position:'fixed',
-          top:0,
-          left:0,
-          width:'100vw',
-          height:'100vh',
-          background:'rgba(30,30,30,0.45)',
-          zIndex:2000,
-          display:'flex',
-          alignItems:'center',
-          justifyContent:'center',
-          flexDirection:'column',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          pointerEvents: 'none'
         }}>
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-            <span className="loader" style={{width:48,height:48,border:'6px solid #4ec9b0',borderTop:'6px solid transparent',borderRadius:'50%',animation:'spin 1s linear infinite',display:'inline-block',marginBottom:16}}></span>
-            <span style={{color:'#4ec9b0',fontWeight:'bold',fontSize:22,background:'rgba(0,0,0,0.15)',padding:'8px 24px',borderRadius:12}}>Cargando...</span>
+          <div style={{
+            background: 'rgba(255,255,255,0.85)', 
+            padding: '24px 48px',
+            borderRadius: '18px',
+            fontSize: '2.2rem',
+            fontWeight: 'bold',
+            color: '#1a237e',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+            pointerEvents: 'none',
+            userSelect: 'none',
+            letterSpacing: '1px',
+            border: '1.5px solid #e3e6f0',
+            minWidth: '220px',
+            textAlign: 'center'
+          }}>
+            Procesando...
           </div>
         </div>
       )}
-      <VoiceAssistantUI
-        onClose={() => setView('chat')}
-        micActive={micActive}
-        onMicToggle={handleMicToggle}
-        selectedVoice={selectedVoice}
-        setSelectedVoice={setSelectedVoice}
-        selectedLang={selectedLang}
-        setSelectedLang={setSelectedLang}
-        talking={isSpeaking} // Solo mueve la boca cuando isSpeaking es true
-        inputBuffer={inputBuffer}
-      />
+      {view === 'voice' ? (
+        <VoiceAssistantUI
+          onClose={() => setView('chat')}
+          micActive={micActive}
+          onMicToggle={handleMicToggle}
+          selectedVoice={selectedVoice}
+          setSelectedVoice={setSelectedVoice}
+          selectedLang={selectedLang}
+          setSelectedLang={setSelectedLang}
+          talking={isSpeaking}
+          inputBuffer={inputBuffer}
+          isMuted={isMuted} // NUEVO: pasar estado mute
+          setIsMuted={setIsMuted} // NUEVO: pasar setter
+        />
+      ) : (
+        <ChatView
+          messages={messages}
+          onSend={handleSendText}
+          onReturnToVoice={() => setView('voice')}
+          onClear={handleClear}
+          isProcessing={isProcessing}
+        />
+      )}
     </div>
-  ) : (
-    <ChatView
-      messages={messages}
-      onSend={handleSendText}
-      onReturnToVoice={() => setView('voice')}
-      onClear={handleClear}
-    />
   );
 };
 

@@ -12,6 +12,7 @@ const ChatWindow: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isFirstQuestion, setIsFirstQuestion] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -155,6 +156,7 @@ const ChatWindow: React.FC = () => {
 
   const sendToBackend = async (text: string) => {
     if (isProcessing) return; // Bloquea preguntas simultáneas
+    if (isFirstQuestion) setIsProcessing(true);
     setIsProcessing(true);
     try {
       console.log('Enviando al backend:', text);
@@ -194,6 +196,10 @@ const ChatWindow: React.FC = () => {
       speak('Lo siento, hubo un error al procesar tu pregunta. Por favor, intenta de nuevo.');
     } finally {
       setIsProcessing(false);
+      if (isFirstQuestion) {
+        setIsProcessing(false);
+        setIsFirstQuestion(false);
+      }
     }
   };
 
@@ -213,7 +219,7 @@ const ChatWindow: React.FC = () => {
       overflow: 'auto'
     }}>
       {/* Animación de carga solo si está procesando y no está hablando */}
-      {isProcessing && !isSpeaking && (
+      {isProcessing && isFirstQuestion && !isSpeaking && (
         <div style={{position:'fixed',top:80,left:80,zIndex:2000,display:'flex',alignItems:'center',gap:8}}>
           <span className="loader" style={{width:32,height:32,border:'4px solid #4ec9b0',borderTop:'4px solid transparent',borderRadius:'50%',animation:'spin 1s linear infinite',display:'inline-block'}}></span>
           <span style={{color:'#4ec9b0',fontWeight:'bold'}}>Cargando...</span>

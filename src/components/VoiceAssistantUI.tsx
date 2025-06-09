@@ -23,11 +23,22 @@ interface VoiceAssistantUIProps {
   setSelectedLang: (lang: string) => void;
   talking: boolean;
   inputBuffer?: string;
+  isMuted: boolean; // NUEVO: para controlar mute desde App
+  setIsMuted: (muted: boolean) => void; // NUEVO: para cambiar mute desde UI
 }
 
-const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({ onClose, micActive, onMicToggle, selectedVoice, setSelectedVoice, selectedLang, setSelectedLang, talking, inputBuffer }) => {
-  const [voiceActive, setVoiceActive] = React.useState(true);
+const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({ onClose, micActive, onMicToggle, selectedVoice, setSelectedVoice, selectedLang, setSelectedLang, talking, inputBuffer, isMuted, setIsMuted }) => {
   const [showConfig, setShowConfig] = React.useState(false);
+  const [showInfo, setShowInfo] = React.useState(false);
+
+  // Silenciar/activar sonido del avatar (audio del navegador)
+  React.useEffect(() => {
+    // Silencia todos los elementos de audio globalmente
+    const audios = document.querySelectorAll('audio');
+    audios.forEach(audio => {
+      audio.muted = isMuted;
+    });
+  }, [isMuted, talking]);
 
   // Filtrar idiomas únicos
   const languages: string[] = Array.from(new Set(voicesData.map((v: VoiceOption) => v.lang)));
@@ -60,14 +71,24 @@ const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({ onClose, micActive,
     }}>
       {/* Iconos arriba derecha */}
       <div className="va-top-icons">
-        <FaInfoCircle className="va-icon" title="Información" />
-        {voiceActive ? (
-          <FaVolumeUp className="va-icon va-icon-btn" title="Silenciar voz" onClick={() => setVoiceActive(false)} />
+        <FaInfoCircle className="va-icon" title="Información" onClick={() => setShowInfo(true)} />
+        {!isMuted ? (
+          <FaVolumeUp className="va-icon va-icon-btn" title="Silenciar voz" onClick={() => setIsMuted(true)} />
         ) : (
-          <FaVolumeMute className="va-icon va-icon-btn" title="Activar voz" onClick={() => setVoiceActive(true)} />
+          <FaVolumeMute className="va-icon va-icon-btn" title="Activar voz" onClick={() => setIsMuted(false)} />
         )}
         <FaSlidersH className="va-icon" title="Configuración" onClick={() => setShowConfig(true)} />
       </div>
+
+      {/* Modal de información */}
+      {showInfo && (
+        <div className="va-modal-bg" onClick={() => setShowInfo(false)}>
+          <div className="va-modal" onClick={e => e.stopPropagation()} style={{textAlign:'center'}}>
+            <h3>Chatbot institucional de la UCH</h3>
+            <button className="va-btn va-save-btn" onClick={() => setShowInfo(false)} style={{marginTop:16}}>Cerrar</button>
+          </div>
+        </div>
+      )}
 
       {/* Modal de configuración de voz/idioma */}
       {showConfig && (

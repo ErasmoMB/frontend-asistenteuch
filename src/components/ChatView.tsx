@@ -12,9 +12,10 @@ interface ChatViewProps {
   onSend: (text: string) => void;
   onReturnToVoice: () => void;
   onClear: () => void;
+  isProcessing?: boolean;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ messages, onSend, onReturnToVoice, onClear }) => {
+const ChatView: React.FC<ChatViewProps> = ({ messages, onSend, onReturnToVoice, onClear, isProcessing }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -77,4 +78,4 @@ const ChatView: React.FC<ChatViewProps> = ({ messages, onSend, onReturnToVoice, 
   );
 };
 
-export default ChatView; 
+export default ChatView;
